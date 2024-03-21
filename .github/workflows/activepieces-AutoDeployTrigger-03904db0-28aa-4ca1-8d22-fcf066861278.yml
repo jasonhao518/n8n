@@ -18,8 +18,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout to the branch
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v4.1.1
+
+      - run: corepack enable
+      - name: Use Node.js 18
+        uses: actions/setup-node@v4.0.1
+        with:
+          node-version: 18.19.0
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
 
       - name: Azure Login
         uses: azure/login@v1
