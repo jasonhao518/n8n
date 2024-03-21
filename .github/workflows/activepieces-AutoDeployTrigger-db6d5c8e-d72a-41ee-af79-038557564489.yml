@@ -1,8 +1,16 @@
 name: Docker Image CI
 
 on:
-  release:
-    types: [published]
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ prod ]
+    paths:
+    - 'docker/images/n8n/**'
+    - '.github/workflows/activepieces-AutoDeployTrigger-db6d5c8e-d72a-41ee-af79-038557564489.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:
 
 jobs:
   build:
