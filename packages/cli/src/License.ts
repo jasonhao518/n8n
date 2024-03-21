@@ -35,7 +35,7 @@ const features = {
 	'feat:sourceControl': true,
 	'feat:apiDisabled': true,
 	'feat:externalSecrets': true,
-	'feat:showNonProdBanner': true,
+	'feat:showNonProdBanner': false,
 	'feat:workflowHistory': true,
 	'feat:debugInEditor': true,
 	'feat:binaryDataS3': true,
@@ -98,7 +98,7 @@ export class License {
 	}
 
 	isFeatureEnabled(feature: BooleanLicenseFeature) {
-		return true;
+		return features[feature] as boolean;
 	}
 
 	isSharingEnabled() {
