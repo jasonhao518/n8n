@@ -33,7 +33,7 @@ const features = {
 	'feat:advancedExecutionFilters': true,
 	'feat:variables': true,
 	'feat:sourceControl': true,
-	'feat:apiDisabled': true,
+	'feat:apiDisabled': false,
 	'feat:externalSecrets': true,
 	'feat:showNonProdBanner': false,
 	'feat:workflowHistory': true,
