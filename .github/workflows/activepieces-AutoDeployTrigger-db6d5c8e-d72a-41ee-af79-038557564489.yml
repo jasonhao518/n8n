@@ -20,7 +20,13 @@ jobs:
     steps:
       - name: Checkout to the branch
         uses: actions/checkout@v2
-
+      - name: Get the version
+        id: vars
+        run: echo ::set-output name=tag::$(echo ${GITHUB_REF:14})
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3.0.0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3.0.0
       - name: Azure Login
         uses: azure/login@v1
         with:
@@ -33,6 +39,8 @@ jobs:
           registryUrl: handler.azurecr.io
           registryUsername: ${{ secrets.ACTIVEPIECES_REGISTRY_USERNAME }}
           registryPassword: ${{ secrets.ACTIVEPIECES_REGISTRY_PASSWORD }}
+          build-args: |
+            N8N_VERSION=${{ steps.vars.outputs.tag }}
           containerAppName: activepieces
           resourceGroup: chatlog
           imageToBuild: handler.azurecr.io/n8n:${{ github.sha }}
