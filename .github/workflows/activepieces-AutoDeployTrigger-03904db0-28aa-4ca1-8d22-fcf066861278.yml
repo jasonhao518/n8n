@@ -1,0 +1,43 @@
+name: Trigger auto deployment for activepieces
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ prod ]
+    paths:
+    - '**'
+    - '.github/workflows/activepieces-AutoDeployTrigger-03904db0-28aa-4ca1-8d22-fcf066861278.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:
+      
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.ACTIVEPIECES_AZURE_CREDENTIALS }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }} 
+          registryUrl: handler.azurecr.io
+          registryUsername: ${{ secrets.ACTIVEPIECES_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.ACTIVEPIECES_REGISTRY_PASSWORD }}
+          containerAppName: activepieces
+          resourceGroup: chatlog
+          imageToBuild: handler.azurecr.io/activepieces:${{ github.sha }}
+          
+            
+
+     
+
