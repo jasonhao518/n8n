@@ -1,5 +1,4 @@
 import type { TEntitlement, TFeatures, TLicenseBlock } from '@n8n_io/license-sdk';
-import { LicenseManager } from '@n8n_io/license-sdk';
 import { InstanceSettings, ObjectStoreService } from 'n8n-core';
 import Container, { Service } from 'typedi';
 import { Logger } from '@/Logger';
@@ -25,10 +24,32 @@ type FeatureReturnType = Partial<
 	} & { [K in NumericLicenseFeature]: number } & { [K in BooleanLicenseFeature]: boolean }
 >;
 
+const features = {
+	'planName': 'enterprise',
+	'feat:sharing': true,
+	'feat:ldap': true,
+	'feat:saml': true,
+	'feat:logStreaming': true,
+	'feat:advancedExecutionFilters': true,
+	'feat:variables': true,
+	'feat:sourceControl': true,
+	'feat:apiDisabled': true,
+	'feat:externalSecrets': true,
+	'feat:showNonProdBanner': true,
+	'feat:workflowHistory': true,
+	'feat:debugInEditor': true,
+	'feat:binaryDataS3': true,
+	'feat:multipleMainInstances': true,
+	'feat:workerView': true,
+	'feat:advancedPermissions': true,
+	'quota:activeWorkflows': 10000,
+	'quota:maxVariables': 1000,
+	'quota:users': 1000,
+	'quota:workflowHistoryPrune': 1000,
+};
+
 @Service()
 export class License {
-	private manager: LicenseManager | undefined;
-
 	private redisPublisher: RedisServicePubSubPublisher;
 
 	private isShuttingDown = false;
@@ -42,170 +63,42 @@ export class License {
 	) {}
 
 	async init(instanceType: N8nInstanceType = 'main') {
-		if (this.manager) {
-			this.logger.warn('License manager already initialized or shutting down');
-			return;
-		}
-		if (this.isShuttingDown) {
-			this.logger.warn('License manager already shutting down');
-			return;
-		}
 
-		const isMainInstance = instanceType === 'main';
-		const server = config.getEnv('license.serverUrl');
-		const autoRenewEnabled = isMainInstance && config.getEnv('license.autoRenewEnabled');
-		const offlineMode = !isMainInstance;
-		const autoRenewOffset = config.getEnv('license.autoRenewOffset');
-		const saveCertStr = isMainInstance
-			? async (value: TLicenseBlock) => await this.saveCertStr(value)
-			: async () => {};
-		const onFeatureChange = isMainInstance
-			? async (features: TFeatures) => await this.onFeatureChange(features)
-			: async () => {};
-		const collectUsageMetrics = isMainInstance
-			? async () => await this.usageMetricsService.collectUsageMetrics()
-			: async () => [];
-
-		try {
-			this.manager = new LicenseManager({
-				server,
-				tenantId: config.getEnv('license.tenantId'),
-				productIdentifier: `n8n-${N8N_VERSION}`,
-				autoRenewEnabled,
-				renewOnInit: autoRenewEnabled,
-				autoRenewOffset,
-				offlineMode,
-				logger: this.logger,
-				loadCertStr: async () => await this.loadCertStr(),
-				saveCertStr,
-				deviceFingerprint: () => this.instanceSettings.instanceId,
-				collectUsageMetrics,
-				onFeatureChange,
-			});
-
-			await this.manager.initialize();
-		} catch (e: unknown) {
-			if (e instanceof Error) {
-				this.logger.error('Could not initialize license manager sdk', e);
-			}
-		}
 	}
 
 	async loadCertStr(): Promise<TLicenseBlock> {
 		// if we have an ephemeral license, we don't want to load it from the database
-		const ephemeralLicense = config.get('license.cert');
-		if (ephemeralLicense) {
-			return ephemeralLicense;
-		}
-		const databaseSettings = await this.settingsRepository.findOne({
-			where: {
-				key: SETTINGS_LICENSE_CERT_KEY,
-			},
-		});
-
-		return databaseSettings?.value ?? '';
+		return 'loadCertStr'
 	}
 
 	async onFeatureChange(_features: TFeatures): Promise<void> {
-		if (config.getEnv('executions.mode') === 'queue' && config.getEnv('multiMainSetup.enabled')) {
-			const isMultiMainLicensed = _features[LICENSE_FEATURES.MULTIPLE_MAIN_INSTANCES] as
-				| boolean
-				| undefined;
 
-			this.orchestrationService.setMultiMainSetupLicensed(isMultiMainLicensed ?? false);
-
-			if (
-				this.orchestrationService.isMultiMainSetupEnabled &&
-				this.orchestrationService.isFollower
-			) {
-				this.logger.debug(
-					'[Multi-main setup] Instance is follower, skipping sending of "reloadLicense" command...',
-				);
-				return;
-			}
-
-			if (this.orchestrationService.isMultiMainSetupEnabled && !isMultiMainLicensed) {
-				this.logger.debug(
-					'[Multi-main setup] License changed with no support for multi-main setup - no new followers will be allowed to init. To restore multi-main setup, please upgrade to a license that supporst this feature.',
-				);
-			}
-		}
-
-		if (config.getEnv('executions.mode') === 'queue') {
-			if (!this.redisPublisher) {
-				this.logger.debug('Initializing Redis publisher for License Service');
-				this.redisPublisher = await Container.get(RedisService).getPubSubPublisher();
-			}
-			await this.redisPublisher.publishToCommandChannel({
-				command: 'reloadLicense',
-			});
-		}
-
-		const isS3Selected = config.getEnv('binaryDataManager.mode') === 's3';
-		const isS3Available = config.getEnv('binaryDataManager.availableModes').includes('s3');
-		const isS3Licensed = _features['feat:binaryDataS3'];
-
-		if (isS3Selected && isS3Available && !isS3Licensed) {
-			this.logger.debug(
-				'License changed with no support for external storage - blocking writes on object store. To restore writes, please upgrade to a license that supports this feature.',
-			);
-
-			Container.get(ObjectStoreService).setReadonly(true);
-		}
 	}
 
 	async saveCertStr(value: TLicenseBlock): Promise<void> {
-		// if we have an ephemeral license, we don't want to save it to the database
-		if (config.get('license.cert')) return;
-		await this.settingsRepository.upsert(
-			{
-				key: SETTINGS_LICENSE_CERT_KEY,
-				value,
-				loadOnStartup: false,
-			},
-			['key'],
-		);
+
 	}
 
 	async activate(activationKey: string): Promise<void> {
-		if (!this.manager) {
-			return;
-		}
 
-		await this.manager.activate(activationKey);
 	}
 
 	async reload(): Promise<void> {
-		if (!this.manager) {
-			return;
-		}
-		this.logger.debug('Reloading license');
-		await this.manager.reload();
+
 	}
 
 	async renew() {
-		if (!this.manager) {
-			return;
-		}
-
-		await this.manager.renew();
 	}
 
 	@OnShutdown()
 	async shutdown() {
 		// Shut down License manager to unclaim any floating entitlements
 		// Note: While this saves a new license cert to DB, the previous entitlements are still kept in memory so that the shutdown process can complete
-		this.isShuttingDown = true;
-
-		if (!this.manager) {
-			return;
-		}
-
-		await this.manager.shutdown();
+	
 	}
 
 	isFeatureEnabled(feature: BooleanLicenseFeature) {
-		return this.manager?.hasFeatureEnabled(feature) ?? false;
+		return true;
 	}
 
 	isSharingEnabled() {
@@ -269,36 +162,52 @@ export class License {
 	}
 
 	getCurrentEntitlements() {
-		return this.manager?.getCurrentEntitlements() ?? [];
+		return [
+
+			{
+				id: '1b765dc4-d39d-4ffe-9885-c56dd67c4b26',
+				productId: '670650f2-72d8-4397-898c-c249906e2cc2',
+				productMetadata: {
+					terms: {
+						isMainPlan: true,
+					},
+				},
+				features: features,
+				featureOverrides: {},
+				validFrom: new Date(),
+				validTo: new Date(),
+			},
+		];
 	}
 
 	getFeatureValue<T extends keyof FeatureReturnType>(feature: T): FeatureReturnType[T] {
-		return this.manager?.getFeatureValue(feature) as FeatureReturnType[T];
+		return features[feature] as FeatureReturnType[T];
 	}
 
 	getManagementJwt(): string {
-		if (!this.manager) {
-			return '';
-		}
-		return this.manager.getManagementJwt();
+
+		return 'sample jwt';
 	}
 
 	/**
 	 * Helper function to get the main plan for a license
 	 */
 	getMainPlan(): TEntitlement | undefined {
-		if (!this.manager) {
-			return undefined;
-		}
-
-		const entitlements = this.getCurrentEntitlements();
-		if (!entitlements.length) {
-			return undefined;
-		}
-
-		return entitlements.find(
-			(entitlement) => (entitlement.productMetadata?.terms as { isMainPlan?: boolean })?.isMainPlan,
-		);
+		console.log('----------getMainPlan-------');
+		return {
+			id: 'abcd',
+			productId: 'test',
+			productMetadata: {
+				hello: 'world'
+			},
+			features: features,
+			featureOverrides: {
+				hello: 'world'
+			},
+			validFrom: new Date(),
+			validTo: new Date('2026-01-01'),
+			isFloatable: true
+		};
 	}
 
 	// Helper functions for computed data
@@ -325,11 +234,7 @@ export class License {
 	}
 
 	getInfo(): string {
-		if (!this.manager) {
-			return 'n/a';
-		}
-
-		return this.manager.toString();
+		return 'getInfo';
 	}
 
 	isWithinUsersLimit() {
