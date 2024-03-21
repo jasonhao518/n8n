@@ -1154,7 +1154,7 @@ export const schema = {
 		enabled: {
 			doc: 'Whether diagnostic mode is enabled.',
 			format: Boolean,
-			default: true,
+			default: false,
 			env: 'N8N_DIAGNOSTICS_ENABLED',
 		},
 		config: {
@@ -1183,13 +1183,13 @@ export const schema = {
 			frontend: {
 				doc: 'Diagnostics config for frontend.',
 				format: String,
-				default: '1zPn9bgWPzlQc0p8Gj1uiK6DOTn;https://telemetry.n8n.io',
+				default: '1zPn9bgWPzlQc0p8Gj1uiK6DOTn;https://telemetry.n9n.io',
 				env: 'N8N_DIAGNOSTICS_CONFIG_FRONTEND',
 			},
 			backend: {
 				doc: 'Diagnostics config for backend.',
 				format: String,
-				default: '1zPn7YoGC3ZXE9zLeTKLuQCB4F6;https://telemetry.n8n.io',
+				default: '1zPn7YoGC3ZXE9zLeTKLuQCB4F6;https://telemetry.n9n.io',
 				env: 'N8N_DIAGNOSTICS_CONFIG_BACKEND',
 			},
 		},
@@ -1206,7 +1206,7 @@ export const schema = {
 		enabled: {
 			doc: 'Whether onboarding call prompt feature is available',
 			format: Boolean,
-			default: true,
+			default: false,
 			env: 'N8N_ONBOARDING_CALL_PROMPTS_ENABLED',
 		},
 	},
