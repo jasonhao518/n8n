@@ -1162,13 +1162,13 @@ export const schema = {
 				apiKey: {
 					doc: 'API key for PostHog',
 					format: String,
-					default: 'phc_4URIAm1uYfJO7j8kWSe0J8lc8IqnstRLS7Jx8NcakHo',
+					default: 'phc_MOPVqS7bO8mCHQMlWgAeaGPbEQb4Rzoax7xR1ObqeBC',
 					env: 'N8N_DIAGNOSTICS_POSTHOG_API_KEY',
 				},
 				apiHost: {
 					doc: 'API host for PostHog',
 					format: String,
-					default: 'https://ph.n8n.io',
+					default: 'https://eu.posthog.com',
 					env: 'N8N_DIAGNOSTICS_POSTHOG_API_HOST',
 				},
 			},
