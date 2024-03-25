@@ -51,6 +51,13 @@ export class InvitationController {
 			);
 		}
 
+		if (!isWithinUsersLimit) {
+			this.logger.debug(
+				'Request to send email invite(s) to user(s) failed because the user limit quota has been reached',
+			);
+			throw new UnauthorizedError(RESPONSE_ERROR_MESSAGES.USERS_QUOTA_REACHED);
+		}
+
 		if (!config.getEnv('userManagement.isInstanceOwnerSetUp')) {
 			this.logger.debug(
 				'Request to send email invite(s) to user(s) failed because the owner account is not set up',
