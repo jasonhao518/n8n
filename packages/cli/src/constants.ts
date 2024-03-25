@@ -86,6 +86,10 @@ export const LICENSE_FEATURES = {
 	MULTIPLE_MAIN_INSTANCES: 'feat:multipleMainInstances',
 	WORKER_VIEW: 'feat:workerView',
 	ADVANCED_PERMISSIONS: 'feat:advancedPermissions',
+	USERS_LIMIT: 1000000,
+	TRIGGER_LIMIT: 100000,
+	VARIABLES_LIMIT: 1000000,
+	WORKFLOW_HISTORY_PRUNE_LIMIT: 10000000
 } as const;
 
 export const LICENSE_QUOTAS = {
