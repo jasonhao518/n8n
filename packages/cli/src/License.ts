@@ -25,7 +25,7 @@ type FeatureReturnType = Partial<
 >;
 
 const features = {
-	'planName': 'Community',
+	'planName': 'enterprise',
 	'feat:sharing': true,
 	'feat:ldap': true,
 	'feat:saml': true,
